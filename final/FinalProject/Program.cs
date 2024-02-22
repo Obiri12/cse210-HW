@@ -1,23 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
-// Enum to represent task priorities
 public enum Priority {
     Low,
     Medium,
     High
 }
 
-// Task class representing individual tasks
-class Task {
-    // Properties
+public class Task {
     public string Title { get; set; }
     public string Description { get; set; }
     public DateTime DueDate { get; set; }
     public bool IsCompleted { get; set; }
     public Priority Priority { get; set; }
 
-    // Constructor
     public Task(string title, string description, DateTime dueDate, Priority priority) {
         Title = title;
         Description = description;
@@ -26,186 +24,190 @@ class Task {
         Priority = priority;
     }
 
-    // Method to mark task as completed
     public void MarkAsCompleted() {
         IsCompleted = true;
     }
 
-    // Method to update task description
     public void UpdateDescription(string newDescription) {
         Description = newDescription;
     }
 
-    // Method to update due date
     public void UpdateDueDate(DateTime newDueDate) {
         DueDate = newDueDate;
     }
 
-    // Method to get task information
     public string GetTaskInfo() {
         return $"Title: {Title}\nDescription: {Description}\nDue Date: {DueDate}\nPriority: {Priority}\nCompleted: {IsCompleted}";
     }
-}
 
-// Category class representing task categories
-class Category {
-    // Properties
-    public string Name { get; set; }
-    public List<Task> Tasks { get; }
-
-    // Constructor
-    public Category(string name) {
-        Name = name;
-        Tasks = new List<Task>();
+    public string SerializeTask() {
+        return $"{Title},{Description},{DueDate},{IsCompleted},{Priority}";
     }
 
-    // Method to add task to category
-    public void AddTask(Task task) {
-        Tasks.Add(task);
-    }
-
-    // Method to remove task from category
-    public void RemoveTask(Task task) {
-        Tasks.Remove(task);
+    public static Task DeserializeTask(string taskString) {
+        string[] parts = taskString.Split(',');
+        string title = parts[0];
+        string description = parts[1];
+        DateTime dueDate = DateTime.Parse(parts[2]);
+        bool isCompleted = bool.Parse(parts[3]);
+        Priority priority = (Priority)Enum.Parse(typeof(Priority), parts[4]);
+        return new Task(title, description, dueDate, priority) { IsCompleted = isCompleted };
     }
 }
 
-// User class representing users of the task management application
-class User {
-    // Properties
-    public string Username { get; }
-    public List<Task> AssignedTasks { get; }
+public class Program {
+    static List<Task> tasks = new List<Task>();
+    static string filePath = "tasks.txt";
 
-    // Constructor
-    public User(string username) {
-        Username = username;
-        AssignedTasks = new List<Task>();
-    }
-
-    // Method to assign task to user
-    public void AssignTask(Task task) {
-        AssignedTasks.Add(task);
-    }
-
-    // Method to unassign task from user
-    public void UnassignTask(Task task) {
-        AssignedTasks.Remove(task);
-    }
-}
-
-class Program {
     static void Main(string[] args) {
-        // Initialize categories and users
-        List<Category> categories = new List<Category>();
-        List<User> users = new List<User>();
+        LoadTasksFromFile();
 
         while (true) {
             Console.WriteLine("\nChoose an action:");
             Console.WriteLine("1. Create task");
-            Console.WriteLine("2. Assign task to user");
-            Console.WriteLine("3. Update task description");
-            Console.WriteLine("4. Mark task as completed");
-            Console.WriteLine("5. Display all tasks");
-            Console.WriteLine("6. Exit");
+            Console.WriteLine("2. List tasks");
+            Console.WriteLine("3. Mark task as completed");
+            Console.WriteLine("4. Update task due date");
+            Console.WriteLine("5. Update task description");
+            Console.WriteLine("6. Delete task");
+            Console.WriteLine("7. Save tasks");
+            Console.WriteLine("8. Exit");
 
-            // Get user input
             Console.Write("Enter your choice: ");
             string input = Console.ReadLine();
 
             switch (input) {
                 case "1":
-                    // Create task
-                    Console.Write("Enter task title: ");
-                    string title = Console.ReadLine();
-                    Console.Write("Enter task description: ");
-                    string description = Console.ReadLine();
-                    Console.Write("Enter due date (yyyy-mm-dd): ");
-                    DateTime dueDate = DateTime.Parse(Console.ReadLine());
-                    Console.WriteLine("Enter task priority (Low, Medium, High): ");
-                    Priority priority = (Priority)Enum.Parse(typeof(Priority), Console.ReadLine(), true);
-
-                    // Create task object
-                    Task newTask = new Task(title, description, dueDate, priority);
-                    Console.WriteLine("Task created successfully!");
+                    CreateTask();
                     break;
-
                 case "2":
-                    // Assign task to user
-                    if (categories.Count == 0 || users.Count == 0) {
-                        Console.WriteLine("Please create at least one category and one user first.");
-                        break;
-                    }
-
-                    Console.Write("Enter user's username: ");
-                    string username = Console.ReadLine();
-                    User selectedUser = users.Find(u => u.Username == username);
-                    if (selectedUser == null) {
-                        Console.WriteLine($"User '{username}' not found.");
-                        break;
-                    }
-
-                    Console.Write("Enter task title to assign: ");
-                    string taskTitle = Console.ReadLine();
-                    Task selectedTask = categories.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Title == taskTitle);
-                    if (selectedTask == null) {
-                        Console.WriteLine($"Task '{taskTitle}' not found.");
-                        break;
-                    }
-
-                    selectedUser.AssignTask(selectedTask);
-                    Console.WriteLine($"Task '{taskTitle}' assigned to user '{username}'.");
+                    ListTasks();
                     break;
-
                 case "3":
-                    // Update task description
-                    Console.Write("Enter task title to update description: ");
-                    string taskTitleToUpdate = Console.ReadLine();
-                    Task taskToUpdate = categories.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Title == taskTitleToUpdate);
-                    if (taskToUpdate == null) {
-                        Console.WriteLine($"Task '{taskTitleToUpdate}' not found.");
-                        break;
-                    }
-
-                    Console.Write("Enter new description: ");
-                    string newDescription = Console.ReadLine();
-                    taskToUpdate.UpdateDescription(newDescription);
-                    Console.WriteLine("Task description updated successfully.");
+                    MarkTaskAsCompleted();
                     break;
-
                 case "4":
-                    // Mark task as completed
-                    Console.Write("Enter task title to mark as completed: ");
-                    string taskTitleToComplete = Console.ReadLine();
-                    Task taskToComplete = categories.SelectMany(c => c.Tasks).FirstOrDefault(t => t.Title == taskTitleToComplete);
-                    if (taskToComplete == null) {
-                        Console.WriteLine($"Task '{taskTitleToComplete}' not found.");
-                        break;
-                    }
-
-                    taskToComplete.MarkAsCompleted();
-                    Console.WriteLine($"Task '{taskTitleToComplete}' marked as completed.");
+                    UpdateTaskDueDate();
                     break;
-
                 case "5":
-                    // Display all tasks
-                    Console.WriteLine("\nAll tasks:");
-                    foreach (Category category in categories) {
-                        Console.WriteLine($"Category: {category.Name}");
-                        foreach (Task task in category.Tasks) {
-                            Console.WriteLine(task.GetTaskInfo());
-                        }
-                    }
+                    UpdateTaskDescription();
                     break;
-
                 case "6":
-                    // Exit program
+                    DeleteTask();
+                    break;
+                case "7":
+                    SaveTasksToFile();
+                    break;
+                case "8":
                     Console.WriteLine("Exiting program...");
                     return;
-
                 default:
-                    Console.WriteLine("Invalid input. Please enter a number from 1 to 6.");
+                    Console.WriteLine("Invalid input. Please enter a number from 1 to 8.");
                     break;
             }
         }
+    }
+
+    static void LoadTasksFromFile() {
+        if (File.Exists(filePath)) {
+            string[] lines = File.ReadAllLines(filePath);
+            tasks.Clear();
+            foreach (string line in lines) {
+                tasks.Add(Task.DeserializeTask(line));
+            }
+        }
+    }
+
+    static void SaveTasksToFile() {
+        List<string> lines = new List<string>();
+        foreach (Task task in tasks) {
+            lines.Add(task.SerializeTask());
+        }
+        File.WriteAllLines(filePath, lines);
+        Console.WriteLine("Tasks saved successfully.");
+    }
+
+    static void CreateTask() {
+        Console.Write("Enter task title: ");
+        string title = Console.ReadLine();
+        Console.Write("Enter task description: ");
+        string description = Console.ReadLine();
+        Console.Write("Enter due date (yyyy-mm-dd): ");
+        DateTime dueDate;
+        if (!DateTime.TryParse(Console.ReadLine(), out dueDate)) {
+            Console.WriteLine("Invalid date format. Task creation failed.");
+            return;
+        }
+        Console.Write("Enter task priority (Low, Medium, High): ");
+        if (!Enum.TryParse(Console.ReadLine(), true, out Priority priority)) {
+            Console.WriteLine("Invalid priority. Task creation failed.");
+            return;
+        }
+
+        tasks.Add(new Task(title, description, dueDate, priority));
+        Console.WriteLine("Task created successfully!");
+    }
+
+    static void ListTasks() {
+        Console.WriteLine("\nAll tasks:");
+        foreach (Task task in tasks) {
+            Console.WriteLine(task.GetTaskInfo());
+            Console.WriteLine();
+        }
+    }
+
+    static void MarkTaskAsCompleted() {
+        Console.Write("Enter task title to mark as completed: ");
+        string title = Console.ReadLine();
+        Task task = tasks.FirstOrDefault(t => t.Title == title);
+        if (task == null) {
+            Console.WriteLine($"Task '{title}' not found.");
+            return;
+        }
+        task.MarkAsCompleted();
+        Console.WriteLine($"Task '{title}' marked as completed.");
+    }
+
+    static void UpdateTaskDueDate() {
+        Console.Write("Enter task title to update due date: ");
+        string title = Console.ReadLine();
+        Task task = tasks.FirstOrDefault(t => t.Title == title);
+        if (task == null) {
+            Console.WriteLine($"Task '{title}' not found.");
+            return;
+        }
+        Console.Write("Enter new due date (yyyy-mm-dd): ");
+        if (!DateTime.TryParse(Console.ReadLine(), out DateTime newDueDate)) {
+            Console.WriteLine("Invalid date format. Due date update failed.");
+            return;
+        }
+        task.UpdateDueDate(newDueDate);
+        Console.WriteLine($"Due date updated successfully for task '{title}'.");
+    }
+
+    static void UpdateTaskDescription() {
+        Console.Write("Enter task title to update description: ");
+        string title = Console.ReadLine();
+        Task task = tasks.FirstOrDefault(t => t.Title == title);
+        if (task == null) {
+            Console.WriteLine($"Task '{title}' not found.");
+            return;
+        }
+        Console.Write("Enter new description: ");
+        string newDescription = Console.ReadLine();
+        task.UpdateDescription(newDescription);
+        Console.WriteLine($"Description updated successfully for task '{title}'.");
+    }
+
+    static void DeleteTask() {
+        Console.Write("Enter task title to delete: ");
+        string title = Console.ReadLine();
+        Task task = tasks.FirstOrDefault(t => t.Title == title);
+        if (task == null) {
+            Console.WriteLine($"Task '{title}' not found.");
+            return;
+        }
+        tasks.Remove(task);
+        Console.WriteLine($"Task '{title}' deleted successfully.");
     }
 }
